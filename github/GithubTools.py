@@ -1,62 +1,62 @@
 import subprocess
 import git
-import utils.BasicDirectoryOperations
 import utils.DirectoriesOperations
 import utils.FilesOperations
 import os
 
 
-def call_github(clone):
-    service_dir = os.path.normpath(os.getcwd() + os.sep + os.pardir + "/Files")
-    if clone is True:
-        subprocess.call("curlRequest.sh", shell=True)
-    file = open(service_dir + "/services.txt", "r")
-    fl = file.readlines()
-    for x in fl:
-        if x.__contains__("OSB") & x.__contains__("VS"):
-            print('VirtualService --> ' + x)
-            github_clone(x.rstrip('\n'), "OSB")
-        elif x.__contains__("OSB") & x.__contains__("DS"):
-            print('DataService --> ' + x)
-            github_clone(x.rstrip('\n'), "OSB")
-        elif x.__contains__("OSB") & x.__contains__("CS"):
-            print('ConnectivityService --> ' + x)
-            github_clone(x.rstrip('\n'), "OSB")
-        elif x.__contains__("OSB"):
-            print('OSB --> ' + x)
-            github_clone(x.rstrip('\n'), "OSB")
-        elif x.__contains__("SOA"):
-            print('SOA --> ' + x)
-            github_clone(x.rstrip('\n'), "SOA")
-        # elif x.__contains__("BPM"):
-        #     print('BPM --> ' + x)
-        #     github_clone(x.rstrip('\n'))
+class GitHubTools:
+    # Cargamos en variables la ruta de los script y las properties
+    properties_dir = os.path.normpath(os.getcwd() + os.sep + os.pardir + "/Files/Properties")
+    script_dir = os.path.normpath(os.getcwd() + os.sep + os.pardir + "/Files/Scripts")
+    properties = utils.FilesOperations
 
+    def create_service_list(self, clone):
+        # Instanciamos el objeto propety y cargamos los valores en variables
+        username = self.properties.read_properties("ScriptSection", "script.username")
+        token = self.properties.read_properties("ScriptSection", "script.token")
+        url = self.properties.read_properties("ScriptSection", "script.url")
+        filename = self.properties.read_properties("ScriptSection", "script.filename")
+        script_name = self.properties.read_properties("ScriptSection", "script.scriptname")
+        if clone is True:
+            subprocess.call(self.script_dir + "/" + script_name + " " + self.script_dir + " " + username +
+                            " " + token + " " + url + " " + filename, shell=True)
+        # Abrimos el fichero en modo lectura y vamos leyendo linea a linea el contenido del fichero
+        service_file = open(self.script_dir + "\\" + filename, "r")
+        service_line = service_file.readlines()
+        # En funcion del tipo de servicio cambiamos el parametro enviado
+        for service_type in service_line:
+            if "OSB" in service_type:
+                self.get_repository(GitHubTools, service_type.rstrip('\n'), "OSB")
+            elif "SOA" in service_type:
+                self.get_repository(GitHubTools, service_type.rstrip('\n'), "SOA")
 
-def github_clone(name_repo, dir_path):
-    dir_github = utils.FilesOperations.read_properties('GithubSection', 'github.path') + "\\" + dir_path
-    name_repo_dir = utils.FilesOperations.read_properties('GithubSection', 'github.path') + "\\" + dir_path + "\\" \
-                    + name_repo
-    url = utils.FilesOperations.read_properties('GithubSection', 'github.endpoint') + name_repo + '.git'
-    if utils.BasicDirectoryOperations.check_dirs(dir_github) is False:
-        utils.BasicDirectoryOperations.create_dirs(dir_github)
-    if utils.BasicDirectoryOperations.check_dirs(name_repo_dir) is False:
-        git.Git(dir_github).clone(url)
-    else:
-        if 'Cibt-SOA-ManageOrganisation-BAS' in name_repo_dir:
-            print('pasando del organisation')
-        elif 'Cibt-SOA-ManageContactPoint-BAS' in name_repo_dir:
-            print('pasando del ManageContactPoint')
-        elif 'Cibt-SOA-ManageApplicationForm-BAS' in name_repo_dir:
-            print('pasando del ManageApplicationForm')
-            # error: unable to create file Cibt-SOA-ManageApplicationForm-BAS/SOA/Transformations/GetApplicationFormVariableDetail/Output_GetApplicationFormVariableDetailResp_GetReferenceDataResp_to_GetApplicationFormVariableDetailResp.xsl: Filename too long
-            # error: unable to create file Cibt-SOA-ManageApplicationForm-BAS/SOA/Transformations/ValidateApplicationForm/XSLNonDeployedFiles/GetCountryCommitteeResp_GetCountryListResp_to_Output-Source-GetCountryCommitteeTerm_OutputVariable.GetCountryCommitteeTermRes.xml: Filename too long
-
-        git.Git(name_repo_dir).pull()
-    # utils.FilesOperations.read_properties('DigraphSection', 'digraph.sequence.path')
+    def get_repository(self, name_repo, dir_path):
+        dir_github = self.properties.read_properties('GithubSection', 'github.path') + "\\" + dir_path
+        name_repo_dir = self.properties.read_properties('GithubSection', 'github.path') + "\\" + dir_path + "\\" + name_repo
+        url = self.properties.read_properties('GithubSection', 'github.endpoint') + name_repo + '.git'
+        dir_operations = utils.DirectoryOperations
+        # Si no existe el directorio lo creamos
+        if dir_operations.check_dirs(dir_github) is False:
+            dir_operations.create_dirs(dir_github)
+        try:
+            if dir_operations.check_dirs(name_repo_dir) is False:
+                # En caso de no existir el repositorio lo clonamos
+                print("clonando --> " + name_repo_dir)
+                git.Git(dir_github).clone(url, b=self.properties.read_properties("GithubSection", "github.branch"))
+            else:
+                # Si existe el repositorio lo actualizamos
+                print("Actualizando --> " + name_repo_dir)
+                git.Git(name_repo_dir).pull()
+        except git.exc.GitError as e:
+            print("Error en a la hora de clonar/Actualizar el servicio " + name_repo_dir)
+            print(str(e))
+            service_error_name = "########### " + name_repo
+            service_error_body = str(e)
+            # Generamos un log con los repositorios que han fallado
+            self.properties.create_log_error(service_error_name, service_error_body)
 
 
 if __name__ == "__main__":
-    # generator()
-    call_github(False)
+    GitHubTools.create_service_list(GitHubTools, False)
     # excel_simple_generator("Cibt-OSB-ManagePolicy-VS")

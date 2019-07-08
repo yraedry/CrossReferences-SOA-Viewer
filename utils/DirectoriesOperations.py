@@ -187,6 +187,15 @@ def call_generator(proxy, pipeline, business, operations, database, isdir):
     # generator.UmlGenerator.uml_complex_generator(proxy, pipeline, business, operations, database)
 
 
+def create_dirs(path):
+    os.mkdir(path)
+
+
+def check_dirs(path):
+    return os.path.exists(path)
+
+
+
 if __name__ == "__main__":
     # navigate_path("Cibt-OSB-ContactEvent-DS", service_object=[])
     # navigate_path("Cibt-OSB-Country-DS", type="DS")

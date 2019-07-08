@@ -3,6 +3,28 @@ import re
 import configparser
 import bs4 as bs
 
+log_dir = os.path.normpath(os.getcwd() + os.sep + os.pardir + "/logs")
+properties_dir = os.path.normpath(os.getcwd() + os.sep + os.pardir + "/Files/Properties")
+
+
+def read_properties(section_property, name_property):
+    config = configparser.RawConfigParser()
+    os.chdir(properties_dir)
+    config.read(r'ConfigFile.properties')
+    get_property = config.get(section_property, name_property)
+    return get_property
+
+
+def create_log_error(service_name, body_log):
+    os.chdir(log_dir + "/errors")
+    if not os.path.exists("gitLogError.log"):
+        f = open("gitLogError.log", "w+")
+        f.write(service_name + "\n" + body_log + "\n")
+    else:
+        f = open("gitLogError.log", "a+")
+        f.write(service_name + "\n" + body_log + "\n")
+    f.close()
+
 
 def match_in_files(path, file):
     os.chdir(path)
@@ -26,7 +48,6 @@ def match_in_files(path, file):
     file.close()
     return matches_list
 
-
 def read_files(path, file):
     print(path)
     print(os.getcwd())
@@ -34,7 +55,6 @@ def read_files(path, file):
     file = open(file, "r")
     # file.close()
     return file
-
 
 def consolidate_digraph(first_file, second_file):
     consolidate_list = []
@@ -70,47 +90,41 @@ def consolidate_digraph(first_file, second_file):
     return consolidate_list
 
 
-def read_properties(section_property, name_property):
-    config = configparser.RawConfigParser()
-    property_dir = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(property_dir)
-    config.read(r'../Files/ConfigFile.properties')
-    get_property = config.get(section_property, name_property)
-    return get_property
 
 
-def search_bpel_references(path, file):
-    service_reference_list = []
-    operation = ""
-    partnerlink = ""
-    os.chdir(path)
-    file = open(file, "r")
-    file_to_xml = bs.BeautifulSoup(file, 'lxml')
-    invokes = file_to_xml.find_all('invoke')
-    for invoke in invokes:
-        operation = invoke['operation']
-        partnerlink = invoke['partnerlink']
-        service_reference_list.append(partnerlink)
-        service_reference_list.append(operation)
-        print(service_reference_list)
-    file.close()
-    return service_reference_list
+
+    def search_bpel_references(path, file):
+        service_reference_list = []
+        operation = ""
+        partnerlink = ""
+        os.chdir(path)
+        file = open(file, "r")
+        file_to_xml = bs.BeautifulSoup(file, 'lxml')
+        invokes = file_to_xml.find_all('invoke')
+        for invoke in invokes:
+            operation = invoke['operation']
+            partnerlink = invoke['partnerlink']
+            service_reference_list.append(partnerlink)
+            service_reference_list.append(operation)
+            print(service_reference_list)
+        file.close()
+        return service_reference_list
 
 
-def match_in_composite(path, file):
-    service_name = ""
-    os.chdir(path)
-    file = open(file, "r")
-    file_to_xml = bs.BeautifulSoup(file, 'lxml')
-    composite = file_to_xml.find_all('composite')
-    for composite_attr in composite:
-        service_name = composite_attr['name']
-        print(service_name)
-    file.close()
-    return service_name
+    def match_in_composite(path, file):
+        service_name = ""
+        os.chdir(path)
+        file = open(file, "r")
+        file_to_xml = bs.BeautifulSoup(file, 'lxml')
+        composite = file_to_xml.find_all('composite')
+        for composite_attr in composite:
+            service_name = composite_attr['name']
+            print(service_name)
+        file.close()
+        return service_name
 
 if __name__ == "__main__":
     # navigate_path("Cibt-OSB-ContactEvent-DS", service_object=[])
     # navigate_path("Cibt-OSB-Country-DS", type="DS")
     # navigate_path("Cibt-OSB-Genesis-CS")
-    search_bpel_references(r'C:\GIT\test\Cibt-SOA-ContactEvent-BAS(Development)\ContactEventBAS\SOA\BPEL', 'GetContactEventListImplProcess.bpel')
+    FilesOperations.search_bpel_references(r'C:\GIT\test\Cibt-SOA-ContactEvent-BAS(Development)\ContactEventBAS\SOA\BPEL', 'GetContactEventListImplProcess.bpel')
